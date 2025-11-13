@@ -1,28 +1,32 @@
-import React, { useState, useMemo } from 'react';
-import { useUsers } from '../hooks/useUsers';
-import SearchBar from '../components/SearchBar';
-import UserTable from '../components/UserTable';
-import UserCard from '../components/UserCard';
-import LoadingSpinner from '../components/LoadingSpinner';
-import ErrorMessage from '../components/ErrorMessage';
-import UserDetailModal from '../components/UserDetailModal';
-import type { User } from '../types/user.types';
+import React, { useState, useMemo } from "react";
+import { useUsers } from "../hooks/useUsers";
+import SearchBar from "../components/SearchBar";
+import UserTable from "../components/UserTable";
+import UserCard from "../components/UserCard";
+import LoadingSpinner from "../components/LoadingSpinner";
+import ErrorMessage from "../components/ErrorMessage";
+import UserDetailModal from "../components/UserDetailModal";
+import type { User } from "../types/user.types";
 
 const DashboardPage: React.FC = () => {
   const { users, loading, error, fetchUsers } = useUsers();
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [viewMode, setViewMode] = useState<"table" | "grid">("table");
 
   const filteredUsers = useMemo(() => {
-    if (!searchQuery) return users;
-    
-    const query = searchQuery.toLowerCase();
-    return users.filter(
-      (user) =>
-        user.name.toLowerCase().includes(query) ||
-        user.email.toLowerCase().includes(query)
-    );
+    let result;
+    if (!searchQuery) {
+      result = users;
+    } else {
+      const query = searchQuery.toLowerCase();
+      result = users.filter(
+        (user) =>
+          user.name.toLowerCase().includes(query) ||
+          user.email.toLowerCase().includes(query)
+      );
+    }
+    return [...result].reverse();
   }, [users, searchQuery]);
 
   const handleSearch = (query: string) => {
@@ -59,7 +63,7 @@ const DashboardPage: React.FC = () => {
               Add New User
             </a>
           </div>
-          
+
           <div className="card shadow-sm">
             <div className="card-body">
               <div className="dashboard-header">
@@ -68,20 +72,31 @@ const DashboardPage: React.FC = () => {
                     <SearchBar onSearch={handleSearch} />
                   </div>
                   <div className="d-flex flex-wrap gap-2">
-                    <div className="view-toggle btn-group w-100 w-sm-auto" role="group">
-                      <button 
+                    <div
+                      className="view-toggle btn-group w-100 w-sm-auto"
+                      role="group"
+                    >
+                      <button
                         type="button"
-                        className={`btn ${viewMode === 'table' ? 'btn-primary' : 'btn-outline-primary'}`}
-                        onClick={() => setViewMode('table')}
+                        className={`btn ${
+                          viewMode === "table"
+                            ? "btn-primary"
+                            : "btn-outline-primary"
+                        }`}
+                        onClick={() => setViewMode("table")}
                       >
                         <i className="fas fa-table me-1"></i>
                         <span className="d-none d-sm-inline">Table View</span>
                         <span className="d-inline d-sm-none">Table</span>
                       </button>
-                      <button 
+                      <button
                         type="button"
-                        className={`btn ${viewMode === 'grid' ? 'btn-primary' : 'btn-outline-primary'}`}
-                        onClick={() => setViewMode('grid')}
+                        className={`btn ${
+                          viewMode === "grid"
+                            ? "btn-primary"
+                            : "btn-outline-primary"
+                        }`}
+                        onClick={() => setViewMode("grid")}
                       >
                         <i className="fas fa-th-large me-1"></i>
                         <span className="d-none d-sm-inline">Grid View</span>
@@ -91,30 +106,33 @@ const DashboardPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-              
+
               {loading && users.length > 0 && (
                 <div className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75">
                   <LoadingSpinner message="Updating..." />
                 </div>
               )}
-              
+
               <div className="user-list">
                 {filteredUsers.length === 0 ? (
                   <div className="text-center py-5">
                     <i className="fas fa-users-slash fa-3x text-muted mb-3"></i>
                     <p className="text-muted">No users found.</p>
                   </div>
-                ) : viewMode === 'table' ? (
+                ) : viewMode === "table" ? (
                   <div className="table-responsive">
-                    <UserTable users={filteredUsers} onUserClick={handleUserClick} />
+                    <UserTable
+                      users={filteredUsers}
+                      onUserClick={handleUserClick}
+                    />
                   </div>
                 ) : (
                   <div className="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-4">
                     {filteredUsers.map((user) => (
                       <div className="col" key={user.id}>
-                        <UserCard 
-                          user={user} 
-                          onClick={() => handleUserClick(user)} 
+                        <UserCard
+                          user={user}
+                          onClick={() => handleUserClick(user)}
                         />
                       </div>
                     ))}

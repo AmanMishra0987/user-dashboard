@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { apiService } from '../services/api.service';
 import type { User } from '../types/user.types';
 
@@ -14,7 +14,7 @@ export const useUser = (): UseUserReturn => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchUser = async (id: number) => {
+  const fetchUser = useCallback(async (id: number) => {
     try {
       setLoading(true);
       setError(null);
@@ -26,7 +26,7 @@ export const useUser = (): UseUserReturn => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   return { user, loading, error, fetchUser };
 };

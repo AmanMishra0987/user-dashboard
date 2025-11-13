@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { User } from '../types/user.types';
 
 interface UserDetailModalProps {
@@ -7,6 +8,13 @@ interface UserDetailModalProps {
 }
 
 const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, onClose }) => {
+  const navigate = useNavigate();
+
+  const handleEditClick = () => {
+    onClose();
+    navigate(`/edit-user/${user.id}`);
+  };
+
   return (
     <div className="modal fade show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
       <div className="modal-dialog modal-dialog-centered modal-lg" onClick={(e) => e.stopPropagation()}>
@@ -94,6 +102,14 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, onClose }) => {
             </div>
           </div>
           <div className="modal-footer bg-light">
+            <button 
+              type="button" 
+              className="btn btn-warning" 
+              onClick={handleEditClick}
+            >
+              <i className="fas fa-edit me-1"></i>
+              Edit User
+            </button>
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               <i className="fas fa-times me-1"></i>
               Close

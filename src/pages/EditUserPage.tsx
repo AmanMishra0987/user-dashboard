@@ -1,70 +1,154 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useCreateUser } from '../hooks/useCreateUser';
-import type { User } from '../types/user.types';
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useUpdateUser } from "../hooks/useUpdateUser";
+import { useUser } from "../hooks/useUser";
+import LoadingSpinner from "../components/LoadingSpinner";
+import ErrorMessage from "../components/ErrorMessage";
+import type { User } from "../types/user.types";
 
-const AddUserPage: React.FC = () => {
+const EditUserPage: React.FC = () => {
   const navigate = useNavigate();
-  const { loading, error, success, createUser, reset } = useCreateUser();
-  
-  const [formData, setFormData] = useState<Omit<User, 'id'>>({
-    name: '',
-    username: '',
-    email: '',
-    phone: '',
-    website: '',
+  const { id } = useParams<{ id: string }>();
+  const userId = id ? parseInt(id, 10) : 0;
+  const { user, loading: loadingUser, error: userError, fetchUser } = useUser();
+  const { loading, error, success, updateUser, reset } = useUpdateUser();
+
+  const [formData, setFormData] = useState<Omit<User, "id">>({
+    name: "",
+    username: "",
+    email: "",
+    phone: "",
+    website: "",
     address: {
-      street: '',
-      suite: '',
-      city: '',
-      zipcode: '',
+      street: "",
+      suite: "",
+      city: "",
+      zipcode: "",
       geo: {
-        lat: '',
-        lng: ''
-      }
+        lat: "",
+        lng: "",
+      },
     },
     company: {
-      name: '',
-      catchPhrase: '',
-      bs: ''
-    }
+      name: "",
+      catchPhrase: "",
+      bs: "",
+    },
   });
+
+  useEffect(() => {
+    if (userId) {
+      fetchUser(userId);
+    }
+  }, [userId, fetchUser]);
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name,
+        username: user.username,
+        email: user.email,
+        phone: user.phone,
+        website: user.website,
+        address: {
+          street: user.address.street,
+          suite: user.address.suite,
+          city: user.address.city,
+          zipcode: user.address.zipcode,
+          geo: {
+            lat: user.address.geo.lat,
+            lng: user.address.geo.lng,
+          },
+        },
+        company: {
+          name: user.company.name,
+          catchPhrase: user.company.catchPhrase,
+          bs: user.company.bs,
+        },
+      });
+    }
+  }, [user]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    
+
     // Handle nested fields
-    if (name.includes('.')) {
-      const [parent, child] = name.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [parent]: {
-          ...(prev as any)[parent],
-          [child]: value
+    if (name.includes(".")) {
+      const parts = name.split(".");
+      if (parts.length === 2) {
+        const [parent, child] = parts;
+        setFormData((prev) => {
+          if (parent === "address") {
+            return {
+              ...prev,
+              address: {
+                ...prev.address,
+                [child]: value,
+              },
+            };
+          } else if (parent === "company") {
+            return {
+              ...prev,
+              company: {
+                ...prev.company,
+                [child]: value,
+              },
+            };
+          }
+          return prev;
+        });
+      } else if (parts.length === 3) {
+        const [parent, child, grandchild] = parts;
+        if (parent === "address" && child === "geo") {
+          setFormData((prev) => ({
+            ...prev,
+            address: {
+              ...prev.address,
+              geo: {
+                ...prev.address.geo,
+                [grandchild]: value,
+              },
+            },
+          }));
         }
-      }));
+      }
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        [name]: value
+        [name]: value,
       }));
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    reset(); 
-    
-    const newUser = await createUser(formData);
-    if (newUser) {
-     
+    reset();
+
+    const updatedUser = await updateUser(userId, formData);
+    if (updatedUser) {
       setTimeout(() => {
-        navigate('/');
+        navigate("/");
       }, 2000);
     }
   };
+
+  if (loadingUser) {
+    return <LoadingSpinner message="Loading user data..." />;
+  }
+
+  if (userError) {
+    return (
+      <div className="container-fluid py-4">
+        <ErrorMessage message={userError} onRetry={() => fetchUser(userId)} />
+        <button onClick={() => navigate(-1)} className="btn btn-secondary mt-3">
+          <i className="fas fa-arrow-left me-1"></i>
+          Go Back
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="container-fluid py-4">
@@ -72,30 +156,49 @@ const AddUserPage: React.FC = () => {
         <div className="col-12">
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
             <h1 className="mb-0">
-              <i className="fas fa-user-plus me-2"></i>
-              Add New User
+              <i className="fas fa-user-edit me-2"></i>
+              Edit User
             </h1>
-            <button onClick={() => navigate(-1)} className="btn btn-secondary w-100 w-md-auto">
+            <button
+              onClick={() => navigate(-1)}
+              className="btn btn-secondary w-100 w-md-auto"
+            >
               <i className="fas fa-arrow-left me-1"></i>
               Back
             </button>
           </div>
-          
+
           <div className="card shadow-sm">
             <div className="card-body">
               {success && (
-                <div className="alert alert-success alert-dismissible fade show" role="alert">
+                <div
+                  className="alert alert-success alert-dismissible fade show"
+                  role="alert"
+                >
                   <i className="fas fa-check-circle me-1"></i>
-                  User created successfully! Redirecting to dashboard...
-                  <button type="button" className="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                  User updated successfully! Redirecting to dashboard...
+                  <button
+                    type="button"
+                    className="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Close"
+                  ></button>
                 </div>
               )}
 
               {error && (
-                <div className="alert alert-danger alert-dismissible fade show" role="alert">
+                <div
+                  className="alert alert-danger alert-dismissible fade show"
+                  role="alert"
+                >
                   <i className="fas fa-exclamation-circle me-1"></i>
                   {error}
-                  <button type="button" className="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Close"
+                  ></button>
                 </div>
               )}
 
@@ -107,7 +210,9 @@ const AddUserPage: React.FC = () => {
                   </div>
                   <div className="row g-3">
                     <div className="col-12 col-md-6">
-                      <label htmlFor="name" className="form-label">Name *</label>
+                      <label htmlFor="name" className="form-label">
+                        Name *
+                      </label>
                       <div className="input-group">
                         <span className="input-group-text">
                           <i className="fas fa-user"></i>
@@ -123,9 +228,11 @@ const AddUserPage: React.FC = () => {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="col-12 col-md-6">
-                      <label htmlFor="username" className="form-label">Username *</label>
+                      <label htmlFor="username" className="form-label">
+                        Username *
+                      </label>
                       <div className="input-group">
                         <span className="input-group-text">
                           <i className="fas fa-id-card"></i>
@@ -141,9 +248,11 @@ const AddUserPage: React.FC = () => {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="col-12 col-md-6">
-                      <label htmlFor="email" className="form-label">Email *</label>
+                      <label htmlFor="email" className="form-label">
+                        Email *
+                      </label>
                       <div className="input-group">
                         <span className="input-group-text">
                           <i className="fas fa-envelope"></i>
@@ -159,9 +268,11 @@ const AddUserPage: React.FC = () => {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="col-12 col-md-6">
-                      <label htmlFor="phone" className="form-label">Phone</label>
+                      <label htmlFor="phone" className="form-label">
+                        Phone
+                      </label>
                       <div className="input-group">
                         <span className="input-group-text">
                           <i className="fas fa-phone"></i>
@@ -176,9 +287,11 @@ const AddUserPage: React.FC = () => {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="col-12 col-md-6">
-                      <label htmlFor="website" className="form-label">Website</label>
+                      <label htmlFor="website" className="form-label">
+                        Website
+                      </label>
                       <div className="input-group">
                         <span className="input-group-text">
                           <i className="fas fa-globe"></i>
@@ -203,7 +316,9 @@ const AddUserPage: React.FC = () => {
                   </div>
                   <div className="row g-3">
                     <div className="col-12 col-md-6">
-                      <label htmlFor="address.street" className="form-label">Street</label>
+                      <label htmlFor="address.street" className="form-label">
+                        Street
+                      </label>
                       <div className="input-group">
                         <span className="input-group-text">
                           <i className="fas fa-road"></i>
@@ -218,9 +333,11 @@ const AddUserPage: React.FC = () => {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="col-12 col-md-6">
-                      <label htmlFor="address.suite" className="form-label">Suite</label>
+                      <label htmlFor="address.suite" className="form-label">
+                        Suite
+                      </label>
                       <div className="input-group">
                         <span className="input-group-text">
                           <i className="fas fa-door-open"></i>
@@ -235,9 +352,11 @@ const AddUserPage: React.FC = () => {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="col-12 col-md-6">
-                      <label htmlFor="address.city" className="form-label">City</label>
+                      <label htmlFor="address.city" className="form-label">
+                        City
+                      </label>
                       <div className="input-group">
                         <span className="input-group-text">
                           <i className="fas fa-city"></i>
@@ -252,9 +371,11 @@ const AddUserPage: React.FC = () => {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="col-12 col-md-6">
-                      <label htmlFor="address.zipcode" className="form-label">Zipcode</label>
+                      <label htmlFor="address.zipcode" className="form-label">
+                        Zipcode
+                      </label>
                       <div className="input-group">
                         <span className="input-group-text">
                           <i className="fas fa-mail-bulk"></i>
@@ -264,6 +385,44 @@ const AddUserPage: React.FC = () => {
                           id="address.zipcode"
                           name="address.zipcode"
                           value={formData.address.zipcode}
+                          onChange={handleChange}
+                          className="form-control"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="col-12 col-md-6">
+                      <label htmlFor="address.geo.lat" className="form-label">
+                        Latitude
+                      </label>
+                      <div className="input-group">
+                        <span className="input-group-text">
+                          <i className="fas fa-map-marker-alt"></i>
+                        </span>
+                        <input
+                          type="text"
+                          id="address.geo.lat"
+                          name="address.geo.lat"
+                          value={formData.address.geo.lat}
+                          onChange={handleChange}
+                          className="form-control"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="col-12 col-md-6">
+                      <label htmlFor="address.geo.lng" className="form-label">
+                        Longitude
+                      </label>
+                      <div className="input-group">
+                        <span className="input-group-text">
+                          <i className="fas fa-map-marker-alt"></i>
+                        </span>
+                        <input
+                          type="text"
+                          id="address.geo.lng"
+                          name="address.geo.lng"
+                          value={formData.address.geo.lng}
                           onChange={handleChange}
                           className="form-control"
                         />
@@ -279,7 +438,9 @@ const AddUserPage: React.FC = () => {
                   </div>
                   <div className="row g-3">
                     <div className="col-12 col-md-6">
-                      <label htmlFor="company.name" className="form-label">Company Name</label>
+                      <label htmlFor="company.name" className="form-label">
+                        Company Name
+                      </label>
                       <div className="input-group">
                         <span className="input-group-text">
                           <i className="fas fa-industry"></i>
@@ -294,9 +455,14 @@ const AddUserPage: React.FC = () => {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="col-12">
-                      <label htmlFor="company.catchPhrase" className="form-label">Catch Phrase</label>
+                      <label
+                        htmlFor="company.catchPhrase"
+                        className="form-label"
+                      >
+                        Catch Phrase
+                      </label>
                       <div className="input-group">
                         <span className="input-group-text">
                           <i className="fas fa-quote-left"></i>
@@ -311,9 +477,11 @@ const AddUserPage: React.FC = () => {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="col-12">
-                      <label htmlFor="company.bs" className="form-label">BS</label>
+                      <label htmlFor="company.bs" className="form-label">
+                        BS
+                      </label>
                       <div className="input-group">
                         <span className="input-group-text">
                           <i className="fas fa-bullhorn"></i>
@@ -332,28 +500,32 @@ const AddUserPage: React.FC = () => {
                 </div>
 
                 <div className="d-flex flex-column flex-md-row justify-content-between gap-2">
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => navigate(-1)}
                     className="btn btn-secondary w-100 w-md-auto"
                   >
                     <i className="fas fa-times me-1"></i>
                     Cancel
                   </button>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     disabled={loading}
                     className="btn btn-primary w-100 w-md-auto"
                   >
                     {loading ? (
                       <>
-                        <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                        Creating...
+                        <span
+                          className="spinner-border spinner-border-sm me-1"
+                          role="status"
+                          aria-hidden="true"
+                        ></span>
+                        Updating...
                       </>
                     ) : (
                       <>
-                        <i className="fas fa-plus-circle me-1"></i>
-                        Create User
+                        <i className="fas fa-save me-1"></i>
+                        Update User
                       </>
                     )}
                   </button>
@@ -367,4 +539,4 @@ const AddUserPage: React.FC = () => {
   );
 };
 
-export default AddUserPage;
+export default EditUserPage;

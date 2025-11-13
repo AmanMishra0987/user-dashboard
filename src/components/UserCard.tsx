@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { User } from '../types/user.types';
 
 interface UserCardProps {
@@ -7,6 +8,13 @@ interface UserCardProps {
 }
 
 const UserCard: React.FC<UserCardProps> = ({ user, onClick }) => {
+  const navigate = useNavigate();
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/edit-user/${user.id}`);
+  };
+
   return (
     <div className="card h-100 shadow-sm" onClick={onClick} style={{ cursor: 'pointer' }}>
       <div className="card-body d-flex flex-column">
@@ -41,10 +49,20 @@ const UserCard: React.FC<UserCardProps> = ({ user, onClick }) => {
           </div>
         </div>
         
-        <div className="mt-auto">
-          <button className="btn btn-outline-primary btn-sm w-100">
+        <div className="mt-auto d-flex gap-2">
+          <button 
+            className="btn btn-outline-primary btn-sm flex-fill"
+            onClick={onClick}
+          >
             <i className="fas fa-eye me-1"></i>
-            View Details
+            View
+          </button>
+          <button 
+            className="btn btn-outline-warning btn-sm"
+            onClick={handleEditClick}
+            title="Edit User"
+          >
+            <i className="fas fa-edit"></i>
           </button>
         </div>
       </div>
